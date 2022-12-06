@@ -101,6 +101,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         cameraPitch = 0, cameraYaw = 0;
     }
 }
+
 static void showMainMenu()
 {
     bool open = false, save = false;
