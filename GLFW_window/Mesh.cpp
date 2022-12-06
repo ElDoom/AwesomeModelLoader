@@ -119,6 +119,7 @@ void Mesh::Update(double seconds)
 	// calculate model matrix 
 	modelMatrix = glm::mat4(1.f); // identity matrix
 								  // note the order of operations here: translate THEN rotate!
+    //modelMatrix = glm::rotate(modelMatrix, angle, glm::vec3(0.f,0.f,1.f));
 	modelMatrix = glm::translate(modelMatrix, position);
 	modelMatrix = glm::rotate(modelMatrix, angle, axis);
 }

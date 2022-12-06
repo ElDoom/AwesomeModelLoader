@@ -38,7 +38,11 @@ struct Light
 	float power;
 };
 string test = "skull";
+
 Mesh *mesh = NULL;
+
+//mesh vector outside main, needed to load more tha one mesh
+std::vector<Mesh*> meshVector;
 
 GLFWwindow* window = NULL;
 
@@ -90,6 +94,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 {
 	if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+    if (GetKeyState(VK_SPACE) & 0x8000) // conditional to reset the camera to the initial position 
+    //if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+    {
+        cameraPosition = glm::vec3(0, 0, 10);
+        cameraPitch = 0, cameraYaw = 0;
+    }
 }
 static void showMainMenu()
 {
@@ -221,7 +231,7 @@ int main(void)
 	double previousTime = currentTime;
 	float timePassed;
 
-	cameraPosition = glm::vec3(0, 0, 0);
+	cameraPosition = glm::vec3(0, 0, 10);
 
 	//location of the mesh
 	glm::vec3 meshPosition(0.0f, 0.0f, 20.f);
