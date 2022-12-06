@@ -1,0 +1,7 @@
+#This is a configuration file for the game controls
+DEADZONE 0.1
+STRAFE 1.0
+WALK 1.0
+#I like inverted pitch!
+PITCH -1.0
+YAW 2.0
