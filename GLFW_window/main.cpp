@@ -44,11 +44,20 @@ Mesh *mesh = NULL;
 //mesh vector outside main, needed to load more tha one mesh
 std::vector<Mesh*> meshVector;
 
+std::vector<Light> lights;
+
+float light1Col01[4];
+float light1Col02[4];
+float light1Col03[4];
+float light1Col04[4];
+
 GLFWwindow* window = NULL;
 
 Configuration configuration;
 
 Joystick joystick;
+
+float keyYaw = 1.f, keyPitch = 1.f;
 
 glm::vec3 cameraPosition;
 float cameraPitch = 0, cameraYaw = 0;
@@ -100,6 +109,10 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         cameraPosition = glm::vec3(0, 0, 10);
         cameraPitch = 0, cameraYaw = 0;
     }
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+        keyPitch = 0.1f;
+    else
+        keyPitch = 1.f;
 }
 
 static void showMainMenu()
@@ -149,121 +162,151 @@ static void showMainMenu()
 
 int main(void)
 {
-    
-    
-	if (!LoadConfig(configuration))
-	{
-		std::cout << "ERROR reading the config file!\n\n";
-	}
-	else
-		DisplayConfig(configuration);
 
-	glfwSetErrorCallback(error_callback);
 
-	if(!glfwInit())
-		exit(EXIT_FAILURE);
+    if (!LoadConfig(configuration))
+    {
+        std::cout << "ERROR reading the config file!\n\n";
+    }
+    else
+        DisplayConfig(configuration);
 
-	window = glfwCreateWindow(1920, 1080, "Context example", NULL, NULL);
-	if(!window)
-	{
-		glfwTerminate();
-		exit(EXIT_FAILURE);
-	}
+    glfwSetErrorCallback(error_callback);
 
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-	const char* glsl_version = "#version 130"; //done here, in case you decide to write code to handle OpenGL ES etc.
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    if (!glfwInit())
+        exit(EXIT_FAILURE);
 
-	glfwMakeContextCurrent(window);// now we have an OpenGL context for this thread.
+    window = glfwCreateWindow(1920, 1080, "Context example", NULL, NULL);
+    if (!window)
+    {
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
 
-	//use GLEW to initialiaze modern opengl functionality supported by the GPU drivers
-	glewInit();
+    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+    const char* glsl_version = "#version 130"; //done here, in case you decide to write code to handle OpenGL ES etc.
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-	//joystick stuff
-	joystick.Init();
+    glfwMakeContextCurrent(window);// now we have an OpenGL context for this thread.
 
-	//Make Texture Manager
-	TextureManager texManager;
+    //use GLEW to initialiaze modern opengl functionality supported by the GPU drivers
+    glewInit();
 
-	//load shaders
-	GLSLProgram shaders;
-	shaders.compileShaderFromFile("vertex.glsl", GLSLShader::GLSLShaderType::VERTEX);
-	shaders.compileShaderFromFile("fragment.glsl", GLSLShader::GLSLShaderType::FRAGMENT);
+    //joystick stuff
+    joystick.Init();
 
-	//bind attributes for the shader layout BEFORE linking the shaders!
-	//We only need to do this if we can't use the layout command from within the shader code.
-	shaders.bindAttribLocation(0, "position");
-	shaders.bindAttribLocation(1, "normal");
-	shaders.bindAttribLocation(2, "texUV");
+    //Make Texture Manager
+    TextureManager texManager;
 
-	shaders.link();
-	shaders.use();
+    //load shaders
+    GLSLProgram shaders;
+    shaders.compileShaderFromFile("vertex.glsl", GLSLShader::GLSLShaderType::VERTEX);
+    shaders.compileShaderFromFile("fragment.glsl", GLSLShader::GLSLShaderType::FRAGMENT);
 
-	//MESH LOAD
+    //bind attributes for the shader layout BEFORE linking the shaders!
+    //We only need to do this if we can't use the layout command from within the shader code.
+    shaders.bindAttribLocation(0, "position");
+    shaders.bindAttribLocation(1, "normal");
+    shaders.bindAttribLocation(2, "texUV");
+
+    shaders.link();
+    shaders.use();
+
+    //MESH LOAD
     //mesh = new Mesh(&texManager, &shaders, "skull.s3d");
-	mesh = new Mesh(&texManager, &shaders, mapLoad);
+    mesh = new Mesh(&texManager, &shaders, mapLoad);
     std::cout << mapLoad;
 
-	glfwSetKeyCallback(window, key_callback);
+    glfwSetKeyCallback(window, key_callback);
 
-	// Enable blending
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // Enable blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	//turn on single-sided polygons
-	glEnable(GL_CULL_FACE);
-	glFrontFace(GL_CCW);
-	glCullFace(GL_BACK);
-	glEnable(GL_DEPTH_TEST);
+    //turn on single-sided polygons
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
+    glCullFace(GL_BACK);
+    glEnable(GL_DEPTH_TEST);
 
-	//view matrix to transform the camera
-	glm::mat4 viewMatrix;
-	//projection matrix to project the scene onto the monitor
-	glm::mat4 projectionMatrix;
+    //view matrix to transform the camera
+    glm::mat4 viewMatrix;
+    //projection matrix to project the scene onto the monitor
+    glm::mat4 projectionMatrix;
 
-	//...and an accumulator for rotatation:
-	float angle = 0.f;
+    //...and an accumulator for rotatation:
+    float angle = 0.f;
 
-	//timer vars
-	double currentTime = glfwGetTime();
-	double previousTime = currentTime;
-	float timePassed;
+    //timer vars
+    double currentTime = glfwGetTime();
+    double previousTime = currentTime;
+    float timePassed;
 
-	cameraPosition = glm::vec3(0, 0, 10);
+    cameraPosition = glm::vec3(0, 0, 10);
 
-	//location of the mesh
-	glm::vec3 meshPosition(0.0f, 0.0f, 20.f);
-	mesh->position = meshPosition;
+    //location of the mesh
+    glm::vec3 meshPosition(5.0f, 0.0f, -10.f);
 
-	//lights
-	std::vector<Light> lights;
-	Light light1;
-	
-	//light #1
-	light1.position = glm::vec3(-5, -5, 0);
-	light1.colour = glm::vec3(0.1f, 0.2f, 0.5f);
-	light1.power = 20.f;
+    mesh = new Mesh(&texManager, &shaders, mapLoad);
+    mesh->position = meshPosition;
+    //*************************************************
+    //MESH 1 LOAD
+    mesh = new Mesh(&texManager, &shaders, "Chopper.s3d");
+    //location of the mesh
+    meshPosition = glm::vec3(10.f, 0.0f, -10.f);
+    mesh->position = meshPosition;
+    //Pushin mesh on to vector
+    meshVector.push_back(mesh);
+
+    mesh = new Mesh(&texManager, &shaders, "rigged-rat.s3d");
+    //location of the mesh
+    meshPosition = glm::vec3(-10.f, 0.0f, -10.f);
+    mesh->position = meshPosition;
+    meshVector.push_back(mesh);
+
+    //MESH 1 LOAD
+    mesh = new Mesh(&texManager, &shaders, "skull.s3d");
+    //location of the mesh
+    meshPosition = glm::vec3(-5.f, 0.0f, -10.f);
+    mesh->position = meshPosition;
+    //Pushin mesh on to vector
+    meshVector.push_back(mesh);
+
+    //**********************************************
+
+    //lights
+
+    Light light1;
+
+    //light #1
+    light1.position = glm::vec3(-5, -5, 0);
+    light1Col01[0] = 0.1f; light1Col01[1] = 0.2f; light1Col01[2] = 0.5f; light1Col01[3] = 1.0f;
+    light1.colour = glm::vec3(light1Col01[0], light1Col01[1], light1Col01[2]);
+    light1.power = 20.f;
 	lights.push_back(light1);
 
 	//light #2
 	light1.position = glm::vec3(5, 5, 5);
-	light1.colour = glm::vec3(0.9f, 0.8f, 0.1f);
-	light1.power = 150.f;
+    light1Col02[0] = 0.9f; light1Col02[1] = 0.8f; light1Col02[2] = 0.1f; light1Col02[3] = 1.0f;
+    light1.colour = glm::vec3(light1Col02[0], light1Col02[1], light1Col02[2]);
+    light1.power = 150.f;
 	lights.push_back(light1);
 
 	//light #3
 	light1.position = glm::vec3(-7, -5, 0);
-	light1.colour = glm::vec3(0.7f, 0.2f, 0.5f);
-	light1.power = 40.f;
+    light1Col03[0] = 0.7f; light1Col03[1] = 0.2f; light1Col03[2] = 0.5f; light1Col03[3] = 1.0f;
+    light1.colour = glm::vec3(light1Col03[0], light1Col03[1], light1Col03[2]);
+    light1.power = 40.f;
 	lights.push_back(light1);
 
 	//light #4
 	light1.position = glm::vec3(7, 5, 5);
-	light1.colour = glm::vec3(0.2f, 0.8f, 0.1f);
-	light1.power = 110.f;
+    light1Col04[0] = 0.2f; light1Col04[1] = 0.8f; light1Col04[2] = 0.1f; light1Col04[3] = 1.0f;
+    light1.colour = glm::vec3(light1Col04[0], light1Col04[1], light1Col04[2]);
+    light1.power = 110.f;
 	lights.push_back(light1);
 
 	IMGUI_CHECKVERSION();
@@ -278,6 +321,8 @@ int main(void)
 	while(!glfwWindowShouldClose(window))
 	{
         mesh = new Mesh(&texManager, &shaders, mapLoad);
+        glm::vec3 meshPosition(5.0f, 0.0f, -10.f);
+        mesh->position = meshPosition;
       
 		currentTime = glfwGetTime();
 		timePassed = static_cast<float>(currentTime - previousTime);
@@ -290,7 +335,7 @@ int main(void)
 		ratio = width / (float)height;
 
 		glViewport(0, 0, width, height);
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		ImGui_ImplOpenGL3_NewFrame();
@@ -299,13 +344,6 @@ int main(void)
 
 		//ImGui::Begin("3D Assignment");
         showMainMenu();
-		
-			//glfwSetWindowShouldClose(window, GL_TRUE);
-		//ImGui::SameLine();
-		//ImGui::End();
-
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		//update projection (needed if window size can be modified)
 		projectionMatrix = glm::perspective(45.0f, ratio, 0.1f, 10000.f);
@@ -321,9 +359,9 @@ int main(void)
 		joystick.ProcessJoystickAxis(joystick.joystickPositionAxis3, configuration);
 
 
-		cameraYaw += joystick.joystickPositionAxis3 * scalingRotation * timePassed * configuration.axis_yaw;
+		cameraYaw += joystick.joystickPositionAxis3 * scalingRotation * timePassed * configuration.axis_yaw ;
+       
 		cameraPitch += joystick.joystickPositionAxis4 * scalingRotation * timePassed * configuration.axis_pitch;
-
 		//move ahead
 		cameraDir = glm::vec4(0, 0, -1, 0);
 		viewMatrix = glm::mat4(1.f);
@@ -336,12 +374,28 @@ int main(void)
 		//strafe
 		cameraDir = glm::vec4(1, 0, 0, 0);
 		viewMatrix = glm::mat4(1.f);
-		//viewMatrix = glm::rotate(viewMatrix, cameraPitch, glm::vec3(1.f, 0, 0));
+		
 		viewMatrix = glm::rotate(viewMatrix, cameraYaw, glm::vec3(0, 1.f, 0));
 		cameraDir = viewMatrix * cameraDir;
 
 		cameraPosition += glm::vec3(cameraDir) * scalingMovement * joystick.joystickPositionAxis1 * (float)timePassed * configuration.axis_strafe;
 
+
+        // ImGUI window creation
+        ImGui::Begin("ImGUI Update Lights Colors");
+        // Text that appears in the window
+        // ImGui::Text("Hello there adventurer!");
+        // Checkbox that appears in the window
+        // ImGui::Checkbox("Draw Models", &drawModels);
+        // Slider that appears in the window
+        // ImGui::SliderFloat("Size", &size, 0.5f, 2.0f);
+        // Fancy color editor that appears in the window
+        ImGui::ColorEdit4("Light 01 Color", light1Col01);
+        ImGui::ColorEdit4("Light 02 Color", light1Col02);
+        ImGui::ColorEdit4("Light 03 Color", light1Col03);
+        ImGui::ColorEdit4("Light 04 Color", light1Col04);
+        // Ends the window
+        ImGui::End();
 
 		//update camera position via the view matrix
 		viewMatrix = FPSViewRH(cameraPosition, cameraPitch, cameraYaw);
@@ -351,10 +405,27 @@ int main(void)
 
 		//update angle
 		angle += timePassed * 1;
-		mesh->angle = angle;
+		mesh->angle = angle * -1;
 		mesh->Update(timePassed);
 
+        for (int i = 0; i < meshVector.size(); ++i)//this for loop is to update all mesh
+        {
+            meshVector[i]->angle = angle * pow(-1, i);
+            //updatedPos = glm::vec3(timePassed * (meshVector[i]->position.x), 0, timePassed * (meshVector[i]->position.z)); //trying to move around
+            //updatedPos = glm::vec3((meshVector[i]->position.x)*
+            //timePassed, 0,  (meshVector[i]->position.z));
+            //meshVector[i]->position = updatedPos;
+            //meshVector[i]->axis.z= timePassed * 2;
+            //meshVector[i]->axis.x = timePassed * 2;
+            meshVector[i]->Update(timePassed);
+        }
+
 		//lighting
+        lights[0].colour = glm::vec3(light1Col01[0], light1Col01[1], light1Col01[2]);
+        lights[1].colour = glm::vec3(light1Col02[0], light1Col02[1], light1Col02[2]);
+        lights[2].colour = glm::vec3(light1Col03[0], light1Col03[1], light1Col03[2]);
+        lights[3].colour = glm::vec3(light1Col04[0], light1Col04[1], light1Col04[2]);
+
 		shaders.setUniform("numLights", (int)lights.size());
 		for (int i = 0; i < lights.size(); ++i)
 		{
@@ -376,8 +447,17 @@ int main(void)
 		shaders.setUniform("shinyness", 0.5f);
 		//material specular "power" : increasing this focuses the specular reflection size
 		shaders.setUniform("specularPower", 20.f);
-		
+        for (int i = 0; i < meshVector.size(); ++i)//this for loop is to draw all meshVector elements
+        {
+            meshVector[i]->Draw();
+            //meshVector[i].Update(timePassed);
+        }
+
 		mesh->Draw();
+
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(window); //display the graphics buffer to the screen
 		glfwPollEvents(); //prime the message pump that GLFW uses for input events
